@@ -59,7 +59,7 @@ onMounted(fetchData);
       </tbody>
     </n-table>
 
-    <n-modal v-model:show="showForm.visible" :title="showForm.roleId ? '编辑角色' : '新建角色'">
+    <n-modal v-model:show="showForm.visible" :title="showForm.roleId ? '编辑角色' : '新建角色'" style="max-width: 640px">
       <n-card><RoleForm :role-id="showForm.roleId" @close="handleFormClose" /></n-card>
     </n-modal>
   </div>

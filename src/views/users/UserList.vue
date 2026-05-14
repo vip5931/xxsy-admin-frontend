@@ -68,7 +68,7 @@ onMounted(fetchData);
         </tbody>
       </n-table>
 
-      <n-modal v-model:show="showForm.visible" :title="showForm.userId ? '编辑用户' : '新建用户'">
+      <n-modal v-model:show="showForm.visible" :title="showForm.userId ? '编辑用户' : '新建用户'" style="max-width: 520px">
         <n-card><UserForm :user-id="showForm.userId" @close="handleFormClose" /></n-card>
       </n-modal>
     </div>
