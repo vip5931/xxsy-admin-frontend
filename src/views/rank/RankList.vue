@@ -17,13 +17,14 @@ onMounted(async () => {
   <div>
     <h2 style="margin-bottom: 16px">排行榜管理</h2>
     <n-table :loading="state.loading">
-      <thead><tr><th>ID</th><th>名称</th><th>排名</th><th>分数</th></tr></thead>
+      <thead><tr><th>ID</th><th>角色名</th><th>职业</th><th>战力</th><th>服务器</th></tr></thead>
       <tbody>
         <tr v-for="row in state.list" :key="row.id">
           <td>{{ row.id }}</td>
-          <td>{{ row.name || row.title || '-' }}</td>
+          <td>{{ row.name || '-' }}</td>
           <td>{{ row.rank || '-' }}</td>
-          <td>{{ row.score || '-' }}</td>
+          <td>{{ row.score?.toLocaleString() || '-' }}</td>
+          <td>{{ row.server || '-' }}</td>
         </tr>
       </tbody>
     </n-table>
