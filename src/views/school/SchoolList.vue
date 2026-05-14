@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue';
-import { NTable, NButton, NSpace, NModal, NCard, NPagination, NPopconfirm, NTag, NLayout, NLayoutSider, NLayoutContent, useMessage } from 'naive-ui';
+import { reactive, computed, onMounted } from 'vue';
+import { NTable, NButton, NSpace, NModal, NCard, NPagination, NPopconfirm, NTag, NSelect, NCheckbox, useMessage } from 'naive-ui';
 import { getSchoolsApi, deleteSchoolApi } from '@/api/school';
 import { getAllGameServersApi } from '@/api/game-server';
 import { usePermissionStore } from '@/stores/permission';
@@ -8,13 +8,19 @@ import SchoolForm from './SchoolForm.vue';
 
 const message = useMessage();
 const permStore = usePermissionStore();
-const state = reactive({ list: [] as any[], total: 0, page: 1, pageSize: 10, loading: false, selectedServer: '' });
+const state = reactive({
+  list: [] as any[], total: 0, page: 1, pageSize: 10, loading: false,
+  selectedServer: null as string | null, checkedIds: new Set<number>(),
+});
 const servers = reactive({ list: [] as any[], loading: false });
 const showForm = reactive({ visible: false, schoolId: null as number | null });
+const batchDeleting = reactive({ loading: false });
 
 const canCreate = permStore.hasPermission('school:create');
 const canUpdate = permStore.hasPermission('school:update');
 const canDelete = permStore.hasPermission('school:delete');
+
+const allChecked = computed(() => state.list.length > 0 && state.list.every(row => state.checkedIds.has(row.id)));
 
 async function fetchServers() {
   servers.loading = true;
@@ -24,6 +30,7 @@ async function fetchServers() {
 
 async function fetchData() {
   state.loading = true;
+  state.checkedIds.clear();
   try {
     const res: any = await getSchoolsApi({ page: state.page, pageSize: state.pageSize, server: state.selectedServer || undefined });
     state.list = res.data.list;
@@ -32,7 +39,35 @@ async function fetchData() {
   finally { state.loading = false; }
 }
 
-function selectServer(server: string) { state.selectedServer = state.selectedServer === server ? '' : server; state.page = 1; fetchData(); }
+function onServerFilter(val: string | null) { state.selectedServer = val; state.page = 1; fetchData(); }
+
+function toggleCheck(id: number) {
+  if (state.checkedIds.has(id)) {
+    state.checkedIds.delete(id);
+  } else {
+    state.checkedIds.add(id);
+  }
+}
+
+function toggleAll() {
+  if (allChecked.value) {
+    state.checkedIds.clear();
+  } else {
+    state.list.forEach(row => state.checkedIds.add(row.id));
+  }
+}
+
+async function handleBatchDelete() {
+  batchDeleting.loading = true;
+  let ok = 0;
+  for (const id of state.checkedIds) {
+    try { await deleteSchoolApi(id); ok++; } catch { /* skip */ }
+  }
+  batchDeleting.loading = false;
+  if (ok > 0) message.success(`成功删除 ${ok} 条`);
+  state.checkedIds.clear();
+  fetchData();
+}
 
 function handleCreate() { showForm.schoolId = null; showForm.visible = true; }
 function handleEdit(id: number) { showForm.schoolId = id; showForm.visible = true; }
@@ -44,60 +79,87 @@ async function handleDelete(id: number) {
 
 function onPageChange(page: number) { state.page = page; fetchData(); }
 
-onMounted(() => { fetchServers(); fetchData(); });
+async function init() {
+  await fetchServers();
+  if (servers.list.length > 0) {
+    state.selectedServer = servers.list[0].name;
+  }
+  fetchData();
+}
+
+onMounted(init);
 </script>
 
 <template>
-  <n-layout has-sider style="height: calc(100vh - 120px)">
-    <n-layout-sider width="180" bordered style="padding: 12px; overflow-y: auto">
-      <div style="font-weight: bold; margin-bottom: 8px">区服筛选</div>
-      <div v-for="s in servers.list" :key="s.id"
-        :style="{ padding: '4px 8px', cursor: 'pointer', borderRadius: '4px', marginBottom: '2px', background: state.selectedServer === s.name ? 'var(--primary-color-hover)' : 'transparent', color: state.selectedServer === s.name ? '#fff' : 'inherit' }"
-        @click="selectServer(s.name)">
-        {{ s.name }}
-      </div>
-    </n-layout-sider>
-    <n-layout-content style="padding: 0 0 0 16px">
-      <n-space justify="space-between" style="margin-bottom: 16px">
-        <h2>门派管理</h2>
+  <div>
+    <n-space justify="space-between" style="margin-bottom: 16px">
+      <h2>门派管理</h2>
+      <n-space>
+        <n-popconfirm v-if="canDelete && state.checkedIds.size > 0" @positive-click="handleBatchDelete">
+          <template #trigger>
+            <n-button type="error" :loading="batchDeleting.loading">批量删除 ({{ state.checkedIds.size }})</n-button>
+          </template>
+          确定删除选中的 {{ state.checkedIds.size }} 条门派记录？
+        </n-popconfirm>
         <n-button v-if="canCreate" type="primary" @click="handleCreate">新建门派</n-button>
       </n-space>
+    </n-space>
 
-      <n-table :loading="state.loading" :single-line="false">
-        <thead>
-          <tr><th>ID</th><th>门派名</th><th>服务器</th><th>战力</th><th>掌门</th><th v-if="canUpdate || canDelete">操作</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in state.list" :key="row.id">
-            <td>{{ row.id }}</td>
-            <td>{{ row.name || '-' }}</td>
-            <td><n-tag size="small">{{ row.address || '-' }}</n-tag></td>
-            <td>{{ row.power?.toLocaleString() || '-' }}</td>
-            <td>{{ row.type || '-' }}</td>
-            <td v-if="canUpdate || canDelete">
-              <n-space>
-                <n-button v-if="canUpdate" size="small" @click="handleEdit(row.id)">编辑</n-button>
-                <n-popconfirm v-if="canDelete" @positive-click="() => handleDelete(row.id)">
-                  <template #trigger><n-button size="small" type="error">删除</n-button></template>
-                  确定删除门派「{{ row.name }}」？
-                </n-popconfirm>
-              </n-space>
-            </td>
-          </tr>
-        </tbody>
-      </n-table>
+    <n-space style="margin-bottom: 16px" align="center">
+      <span style="font-size: 14px; color: var(--text-color-secondary)">区服筛选：</span>
+      <n-select
+        v-model:value="state.selectedServer"
+        :options="servers.list.map((s: any) => ({ label: s.name, value: s.name }))"
+        placeholder="全部区服"
+        clearable style="width: 200px"
+        @update:value="onServerFilter"
+      />
+    </n-space>
 
-      <div style="margin-top: 16px; display: flex; justify-content: flex-end">
-        <n-pagination
-          :page="state.page" :page-size="state.pageSize" :item-count="state.total" :page-sizes="[10, 20, 50]" show-size-picker
-          @update:page="onPageChange"
-          @update:page-size="(size: number) => { state.pageSize = size; fetchData(); }"
-        />
-      </div>
+    <n-table :loading="state.loading" :single-line="false">
+      <thead>
+        <tr>
+          <th style="width:40px">
+            <n-checkbox :checked="allChecked" @update:checked="toggleAll" />
+          </th>
+          <th>ID</th><th>门派名</th><th>服务器</th><th>战力</th><th>掌门</th>
+          <th v-if="canUpdate || canDelete">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(row, idx) in state.list" :key="row.id">
+          <td>
+            <n-checkbox :checked="state.checkedIds.has(row.id)" @update:checked="() => toggleCheck(row.id)" />
+          </td>
+          <td>{{ (state.page - 1) * state.pageSize + idx + 1 }}</td>
+          <td>{{ row.name || '-' }}</td>
+          <td><n-tag size="small">{{ row.server || '-' }}</n-tag></td>
+          <td>{{ row.power?.toLocaleString() || '-' }}</td>
+          <td>{{ row.master_name || '-' }}</td>
+          <td v-if="canUpdate || canDelete">
+            <n-space>
+              <n-button v-if="canUpdate" size="small" @click="handleEdit(row.id)">编辑</n-button>
+              <n-popconfirm v-if="canDelete" @positive-click="() => handleDelete(row.id)">
+                <template #trigger><n-button size="small" type="error">删除</n-button></template>
+                确定删除门派「{{ row.name }}」？
+              </n-popconfirm>
+            </n-space>
+          </td>
+        </tr>
+      </tbody>
+    </n-table>
 
-      <n-modal v-model:show="showForm.visible" :title="showForm.schoolId ? '编辑门派' : '新建门派'" style="max-width: 480px">
-        <n-card><SchoolForm :school-id="showForm.schoolId" @close="handleFormClose" /></n-card>
-      </n-modal>
-    </n-layout-content>
-  </n-layout>
+    <div style="margin-top: 16px; display: flex; justify-content: flex-end">
+      <n-pagination
+        :page="state.page" :page-size="state.pageSize" :item-count="state.total"
+        :page-sizes="[10, 20, 50, 100]" show-size-picker
+        @update:page="onPageChange"
+        @update:page-size="(size: number) => { state.pageSize = size; fetchData(); }"
+      />
+    </div>
+
+    <n-modal v-model:show="showForm.visible" :title="showForm.schoolId ? '编辑门派' : '新建门派'" style="max-width: 420px">
+      <n-card><SchoolForm :school-id="showForm.schoolId" @close="handleFormClose" /></n-card>
+    </n-modal>
+  </div>
 </template>

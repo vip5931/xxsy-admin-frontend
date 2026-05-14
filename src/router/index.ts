@@ -51,6 +51,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "区服管理", permission: "game-server:read" },
       },
       {
+        path: "professions",
+        name: "Professions",
+        component: () => import("@/views/profession/ProfessionList.vue"),
+        meta: { title: "职业管理", permission: "profession:read" },
+      },
+      {
         path: "ai-records",
         name: "AiRecords",
         component: () => import("@/views/ai-record/AiRecordList.vue"),

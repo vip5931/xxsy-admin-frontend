@@ -1,6 +1,6 @@
 import request from './request';
 
-export function getRanksApi(params?: { page?: number; pageSize?: number; server?: string }) {
+export function getRanksApi(params?: { page?: number; pageSize?: number; server?: string; profession?: string }) {
   return request.get('/ranks', { params });
 }
 

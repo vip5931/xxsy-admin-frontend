@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { reactive, onMounted } from 'vue';
-import { NTable, NButton, NTag, NSpace, NModal, NCard, NMessageProvider, useMessage } from 'naive-ui';
-import { getUsersApi, updateUserStatusApi } from '@/api/users';
+import { NTable, NButton, NTag, NSpace, NModal, NCard, NPopconfirm, useMessage } from 'naive-ui';
+import { usePermissionStore } from '@/stores/permission';
+import { getUsersApi, deleteUserApi } from '@/api/users';
 import UserForm from './UserForm.vue';
 
 const message = useMessage();
+const permStore = usePermissionStore();
 const state = reactive({ list: [] as any[], total: 0, page: 1, pageSize: 10, loading: false });
 const showForm = reactive({ visible: false, userId: null as number | null });
+
+const canDelete = permStore.hasPermission('users:delete');
 
 async function fetchData() {
   state.loading = true;
@@ -20,9 +24,14 @@ async function fetchData() {
 
 async function toggleStatus(row: any) {
   const newStatus = row.status === 1 ? 0 : 1;
+  const { updateUserStatusApi } = await import('@/api/users');
   await updateUserStatusApi(row.id, newStatus);
   message.success('状态更新成功');
   fetchData();
+}
+
+async function handleDelete(id: number) {
+  try { await deleteUserApi(id); message.success('删除成功'); fetchData(); } catch { message.error('删除失败'); }
 }
 
 function handleEdit(id: number) { showForm.userId = id; showForm.visible = true; }
@@ -33,8 +42,7 @@ onMounted(fetchData);
 </script>
 
 <template>
-  <n-message-provider>
-    <div>
+  <div>
       <n-space justify="space-between" style="margin-bottom: 16px">
         <h2>用户管理</h2>
         <n-button type="primary" @click="handleCreate">新建用户</n-button>
@@ -62,6 +70,10 @@ onMounted(fetchData);
                 <n-button size="small" :type="row.status === 1 ? 'warning' : 'success'" @click="toggleStatus(row)">
                   {{ row.status === 1 ? '禁用' : '启用' }}
                 </n-button>
+                <n-popconfirm v-if="canDelete" @positive-click="() => handleDelete(row.id)">
+                  <template #trigger><n-button size="small" type="error">删除</n-button></template>
+                  确定删除用户「{{ row.username }}」？
+                </n-popconfirm>
               </n-space>
             </td>
           </tr>
@@ -71,6 +83,5 @@ onMounted(fetchData);
       <n-modal v-model:show="showForm.visible" :title="showForm.userId ? '编辑用户' : '新建用户'" style="max-width: 520px">
         <n-card><UserForm :user-id="showForm.userId" @close="handleFormClose" /></n-card>
       </n-modal>
-    </div>
-  </n-message-provider>
+  </div>
 </template>

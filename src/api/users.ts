@@ -23,3 +23,7 @@ export function updateUserStatusApi(id: number, status: number) {
 export function assignRolesApi(id: number, roleIds: number[]) {
   return request.put(`/users/${id}/roles`, { roleIds });
 }
+
+export function deleteUserApi(id: number) {
+  return request.delete(`/users/${id}`);
+}

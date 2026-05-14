@@ -16,6 +16,7 @@ const allMenuItems: MenuOption[] = [
   { label: '排行榜管理', key: '/ranks', icon: () => h('span', { innerHTML: '&#x1F3C6;' }) },
   { label: '门派管理', key: '/schools', icon: () => h('span', { innerHTML: '&#x1F3DB;' }) },
   { label: '区服管理', key: '/game-servers', icon: () => h('span', { innerHTML: '&#x1F310;' }) },
+  { label: '职业管理', key: '/professions', icon: () => h('span', { innerHTML: '&#x1F393;' }) },
   { label: 'AI分析记录', key: '/ai-records', icon: () => h('span', { innerHTML: '&#x1F916;' }) },
   { label: '操作日志', key: '/audit-logs', icon: () => h('span', { innerHTML: '&#x1F4CB;' }) },
 ];
