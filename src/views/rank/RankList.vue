@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { NTable, NButton, NSpace, NModal, NCard, NPagination, NPopconfirm, NTag, NSelect, NCheckbox, NPopover, useMessage } from 'naive-ui';
-import { getRanksApi, deleteRankApi } from '@/api/rank';
+import { getRanksApi, deleteRankApi, batchDeleteRanksApi } from '@/api/rank';
 import { getAllGameServersApi } from '@/api/game-server';
 import { getAllProfessionsApi } from '@/api/profession';
 import { usePermissionStore } from '@/stores/permission';
 import RankForm from './RankForm.vue';
+import RankAiModal from './RankAiModal.vue';
 
 const message = useMessage();
 const permStore = usePermissionStore();
@@ -16,6 +17,7 @@ const state = reactive({
 });
 const servers = reactive({ list: [] as any[], loading: false });
 const professions = reactive({ list: [] as any[], loading: false });
+const showAiModal = ref(false);
 const showForm = reactive({ visible: false, rankId: null as number | null });
 const batchDeleting = reactive({ loading: false });
 
@@ -74,14 +76,14 @@ function toggleAll() {
 
 async function handleBatchDelete() {
   batchDeleting.loading = true;
-  let ok = 0;
-  for (const id of state.checkedIds) {
-    try { await deleteRankApi(id); ok++; } catch { /* skip */ }
-  }
-  batchDeleting.loading = false;
-  if (ok > 0) message.success(`成功删除 ${ok} 条`);
-  state.checkedIds.clear();
-  fetchData();
+  try {
+    const ids = Array.from(state.checkedIds);
+    await batchDeleteRanksApi(ids);
+    message.success(`成功删除 ${ids.length} 条`);
+    state.checkedIds.clear();
+    fetchData();
+  } catch { message.error('批量删除失败'); }
+  finally { batchDeleting.loading = false; }
 }
 
 function handleCreate() { showForm.rankId = null; showForm.visible = true; }
@@ -116,6 +118,7 @@ onMounted(init);
           </template>
           确定删除选中的 {{ state.checkedIds.size }} 条排行记录？
         </n-popconfirm>
+        <n-button v-if="canCreate" type="info" @click="showAiModal = true">AI 识别</n-button>
         <n-button v-if="canCreate" type="primary" @click="handleCreate">新建排行</n-button>
       </n-space>
     </n-space>
@@ -184,5 +187,12 @@ onMounted(init);
     <n-modal v-model:show="showForm.visible" :title="showForm.rankId ? '编辑排行' : '新建排行'" style="max-width: 420px">
       <n-card><RankForm :rank-id="showForm.rankId" @close="handleFormClose" /></n-card>
     </n-modal>
+
+    <RankAiModal
+      :visible="showAiModal"
+      :servers="servers.list.map((s: any) => s.name)"
+      @close="showAiModal = false"
+      @success="fetchData"
+    />
   </div>
 </template>

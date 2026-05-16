@@ -19,3 +19,17 @@ export function updateRankApi(id: number, data: { role_name?: string; profession
 export function deleteRankApi(id: number) {
   return request.delete(`/ranks/${id}`);
 }
+
+export function batchDeleteRanksApi(ids: number[]) {
+  return request.post('/ranks/batch-delete', { ids });
+}
+
+export function aiRecognizeApi(formData: FormData) {
+  return request.post('/ranks/ai-recognize', formData, {
+    timeout: 120000,
+  });
+}
+
+export function batchCreateRankApi(data: { role_name: string; server_name: string; profession?: string; combat_power?: number }[]) {
+  return request.post('/ranks/batch-create', { data });
+}

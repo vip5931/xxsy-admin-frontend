@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { reactive, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted } from 'vue';
 import { NTable, NButton, NSpace, NModal, NCard, NPagination, NPopconfirm, NTag, NSelect, NCheckbox, useMessage } from 'naive-ui';
-import { getSchoolsApi, deleteSchoolApi } from '@/api/school';
+import { getSchoolsApi, deleteSchoolApi, batchDeleteSchoolsApi } from '@/api/school';
 import { getAllGameServersApi } from '@/api/game-server';
 import { usePermissionStore } from '@/stores/permission';
 import SchoolForm from './SchoolForm.vue';
+import SchoolAiModal from './SchoolAiModal.vue';
 
 const message = useMessage();
 const permStore = usePermissionStore();
@@ -13,6 +14,7 @@ const state = reactive({
   selectedServer: null as string | null, checkedIds: new Set<number>(),
 });
 const servers = reactive({ list: [] as any[], loading: false });
+const showAiModal = ref(false);
 const showForm = reactive({ visible: false, schoolId: null as number | null });
 const batchDeleting = reactive({ loading: false });
 
@@ -59,14 +61,14 @@ function toggleAll() {
 
 async function handleBatchDelete() {
   batchDeleting.loading = true;
-  let ok = 0;
-  for (const id of state.checkedIds) {
-    try { await deleteSchoolApi(id); ok++; } catch { /* skip */ }
-  }
-  batchDeleting.loading = false;
-  if (ok > 0) message.success(`成功删除 ${ok} 条`);
-  state.checkedIds.clear();
-  fetchData();
+  try {
+    const ids = Array.from(state.checkedIds);
+    await batchDeleteSchoolsApi(ids);
+    message.success(`成功删除 ${ids.length} 条`);
+    state.checkedIds.clear();
+    fetchData();
+  } catch { message.error('批量删除失败'); }
+  finally { batchDeleting.loading = false; }
 }
 
 function handleCreate() { showForm.schoolId = null; showForm.visible = true; }
@@ -101,6 +103,7 @@ onMounted(init);
           </template>
           确定删除选中的 {{ state.checkedIds.size }} 条门派记录？
         </n-popconfirm>
+        <n-button v-if="canCreate" type="info" @click="showAiModal = true">AI 识别</n-button>
         <n-button v-if="canCreate" type="primary" @click="handleCreate">新建门派</n-button>
       </n-space>
     </n-space>
@@ -161,5 +164,12 @@ onMounted(init);
     <n-modal v-model:show="showForm.visible" :title="showForm.schoolId ? '编辑门派' : '新建门派'" style="max-width: 420px">
       <n-card><SchoolForm :school-id="showForm.schoolId" @close="handleFormClose" /></n-card>
     </n-modal>
+
+    <SchoolAiModal
+      :visible="showAiModal"
+      :servers="servers.list.map((s: any) => s.name)"
+      @close="showAiModal = false"
+      @success="fetchData"
+    />
   </div>
 </template>

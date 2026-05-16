@@ -19,3 +19,17 @@ export function updateSchoolApi(id: number, data: { name?: string; server?: stri
 export function deleteSchoolApi(id: number) {
   return request.delete(`/schools/${id}`);
 }
+
+export function batchDeleteSchoolsApi(ids: number[]) {
+  return request.post('/schools/batch-delete', { ids });
+}
+
+export function aiRecognizeSchoolApi(formData: FormData) {
+  return request.post('/schools/ai-recognize', formData, {
+    timeout: 120000,
+  });
+}
+
+export function batchCreateSchoolApi(data: { name: string; server: string; power?: number; master_name?: string }[]) {
+  return request.post('/schools/batch-create', { data });
+}
