@@ -172,7 +172,7 @@ async function handleRecognizeDoushen() {
   try {
     const doushenRows = await doRecognize(doushenPreviews.value);
 
-    // Build lookup map: combatPower → name
+    // Build lookup map: combatPower → name (exact match only)
     const nameMap = new Map<number, string>();
     for (const r of doushenRows) {
       if (r.roleName && r.roleName !== '玩家信息已隐藏') {
@@ -180,7 +180,7 @@ async function handleRecognizeDoushen() {
       }
     }
 
-    // Merge: replace hidden names by matching combat power
+    // Merge: replace hidden names by exact combat power match
     let filled = 0;
     for (const row of tableData.value) {
       if (row.roleName === '玩家信息已隐藏') {
