@@ -42,7 +42,7 @@ const routes: RouteRecordRaw[] = [
         path: "schools",
         name: "Schools",
         component: () => import("@/views/school/SchoolList.vue"),
-        meta: { title: "门派管理", permission: "school:read" },
+        meta: { title: "门派排行", permission: "school:read" },
       },
       {
         path: "game-servers",
@@ -55,12 +55,6 @@ const routes: RouteRecordRaw[] = [
         name: "Professions",
         component: () => import("@/views/profession/ProfessionList.vue"),
         meta: { title: "职业管理", permission: "profession:read" },
-      },
-      {
-        path: "ai-records",
-        name: "AiRecords",
-        component: () => import("@/views/ai-record/AiRecordList.vue"),
-        meta: { title: "AI分析记录", permission: "ai-record:read" },
       },
       {
         path: "audit-logs",

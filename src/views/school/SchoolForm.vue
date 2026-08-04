@@ -53,7 +53,7 @@ async function handleSubmit() {
     <n-form-item label="战力"><n-input-number v-model:value="form.power" :min="0" style="width:100%" /></n-form-item>
     <n-form-item label="掌门"><n-input v-model:value="form.master_name" /></n-form-item>
     <n-button type="primary" block :loading="loading" @click="handleSubmit">
-      {{ isEdit ? '保存修改' : '创建门派' }}
+      {{ isEdit ? '保存修改' : '创建门派排行' }}
     </n-button>
   </n-form>
 </template>
