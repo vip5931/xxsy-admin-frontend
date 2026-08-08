@@ -45,6 +45,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "门派排行", permission: "school:read" },
       },
       {
+        path: "pets",
+        name: "Pets",
+        component: () => import("@/views/pet/PetList.vue"),
+        meta: { title: "捉宠管理", permission: "pet:read" },
+      },
+      {
         path: "game-servers",
         name: "GameServers",
         component: () => import("@/views/game-server/GameServerList.vue"),

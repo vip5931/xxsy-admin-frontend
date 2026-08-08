@@ -27,6 +27,7 @@ pnpm dev                      # 启动开发服务器 (localhost:5173)
 | 角色管理 | `/roles` | 角色 CRUD + 权限分配 |
 | 排行榜管理 | `/ranks` | 游戏角色战力排行 + AI 图片识别 |
 | 门派排行 | `/schools` | 游戏门派排行数据 + AI 图片识别 |
+| 捉宠管理 | `/pets` | 捉宠地图/宠物位置数据 CRUD，图片存阿里云 OSS |
 | 区服管理 | `/game-servers` | 区服数据字典 |
 | 职业管理 | `/professions` | 职业数据字典 |
 | 操作日志 | `/audit-logs` | 系统操作日志审计 |

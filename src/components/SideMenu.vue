@@ -10,6 +10,7 @@ import {
   KeyOutline,
   TrophyOutline,
   SchoolOutline,
+  PawOutline,
   ServerOutline,
   BriefcaseOutline,
   DocumentTextOutline,
@@ -52,6 +53,7 @@ const groupDefs: {
       { label: '角色管理', key: '/roles', icon: KeyOutline },
       { label: '战力排行', key: '/ranks', icon: TrophyOutline },
       { label: '门派排行', key: '/schools', icon: SchoolOutline },
+      { label: '捉宠管理', key: '/pets', icon: PawOutline },
     ],
   },
   {
