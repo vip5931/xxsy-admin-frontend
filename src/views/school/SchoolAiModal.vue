@@ -14,6 +14,7 @@ import {
 import { aiRecognizeSchoolApi, batchCreateSchoolApi } from '@/api/school';
 import AiImageUpload from '@/components/AiImageUpload.vue';
 import type { ImagePreviewFile } from '@/utils/image';
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODEL } from '@/utils/aiModels';
 
 const props = defineProps<{
   visible: boolean;
@@ -30,6 +31,7 @@ const state = ref<'select' | 'recognizing' | 'review'>('select');
 const loading = ref(false);
 const submitting = ref(false);
 const selectedServer = ref<string | null>(null);
+const selectedModel = ref<string>(DEFAULT_AI_MODEL);
 const filePreviews = ref<ImagePreviewFile[]>([]);
 const tableData = ref<
   { serverName: string; name: string; masterName: string; power: number }[]
@@ -43,6 +45,7 @@ watch(
       filePreviews.value = [];
       tableData.value = [];
       selectedServer.value = null;
+      selectedModel.value = DEFAULT_AI_MODEL;
     }
   },
 );
@@ -54,9 +57,11 @@ async function handleRecognize() {
   }
   loading.value = true;
   state.value = 'recognizing';
+  const expectedRows = filePreviews.value.length * 20;
   try {
     const formData = new FormData();
     filePreviews.value.forEach((f) => formData.append('files', f.file));
+    formData.append('model', selectedModel.value);
     const res: any = await aiRecognizeSchoolApi(formData);
     if (res.error) throw new Error(res.error);
     const list = res.data?.list || res.list || [];
@@ -70,7 +75,13 @@ async function handleRecognize() {
       message.warning('未能识别出任何门派排行数据');
       state.value = 'select';
     } else {
-      message.success(`识别完成，共 ${tableData.value.length} 条门派排行数据`);
+      if (tableData.value.length < expectedRows) {
+        message.warning(
+          `识别完成，共 ${tableData.value.length} 条门派排行数据，少于预期约 ${expectedRows} 条，可能未完全提取，可尝试切换其他模型重新识别`,
+        );
+      } else {
+        message.success(`识别完成，共 ${tableData.value.length} 条门派排行数据`);
+      }
       state.value = 'review';
     }
   } catch (e: any) {
@@ -141,6 +152,17 @@ async function handleSubmit() {
             placeholder="选择区服（可选）"
             clearable
             style="width: 240px"
+          />
+        </div>
+
+        <div>
+          <span style="font-size: 14px; color: var(--text-color-secondary); margin-right: 8px">
+            识别模型：
+          </span>
+          <n-select
+            v-model:value="selectedModel"
+            :options="AI_MODEL_OPTIONS.map((m) => ({ label: m.label, value: m.id }))"
+            style="width: 340px"
           />
         </div>
 

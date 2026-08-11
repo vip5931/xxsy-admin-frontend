@@ -2,6 +2,18 @@ import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import { usePermissionStore } from "@/stores/permission";
 import { useAuthStore } from "@/stores/auth";
 
+// ── hash 路由 URL 规范化 ──────────────────────────────────────────────
+// 访问裸路径(如 /login,nginx try_files 会回退到 index.html)或历史遗留的
+// /login#/login 双路径时,统一重定向为规范的 /#/login,避免地址栏出现双路径。
+(function normalizeHashUrl() {
+  const { pathname, hash } = window.location;
+  if (pathname === "/" || pathname === "/index.html") return;
+  const target = "/#" + (hash || pathname);
+  if (window.location.pathname + window.location.hash !== target) {
+    window.location.replace(target);
+  }
+})();
+
 const routes: RouteRecordRaw[] = [
   {
     path: "/login",
@@ -61,6 +73,12 @@ const routes: RouteRecordRaw[] = [
         name: "Professions",
         component: () => import("@/views/profession/ProfessionList.vue"),
         meta: { title: "职业管理", permission: "profession:read" },
+      },
+      {
+        path: "announcements",
+        name: "Announcements",
+        component: () => import("@/views/announcement/AnnouncementList.vue"),
+        meta: { title: "公告管理", permission: "announcement:read" },
       },
       {
         path: "audit-logs",

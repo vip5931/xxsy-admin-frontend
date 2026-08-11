@@ -17,6 +17,7 @@ import { aiRecognizeApi, batchCreateRankApi } from '@/api/rank';
 import AiImageUpload from '@/components/AiImageUpload.vue';
 import { splitImageIntoFive } from '@/utils/image';
 import type { ImagePreviewFile } from '@/utils/image';
+import { AI_MODEL_OPTIONS, DEFAULT_AI_MODEL } from '@/utils/aiModels';
 
 const props = defineProps<{
   visible: boolean;
@@ -34,6 +35,7 @@ const loading = ref(false);
 const doushenLoading = ref(false);
 const submitting = ref(false);
 const selectedServer = ref<string | null>(null);
+const selectedModel = ref<string>(DEFAULT_AI_MODEL);
 const filePreviews = ref<ImagePreviewFile[]>([]);
 const doushenPreviews = ref<ImagePreviewFile[]>([]);
 const tableData = ref<
@@ -54,6 +56,7 @@ watch(
       doushenPreviews.value = [];
       tableData.value = [];
       selectedServer.value = null;
+      selectedModel.value = DEFAULT_AI_MODEL;
     }
   },
 );
@@ -66,6 +69,7 @@ async function doRecognize(files: ImagePreviewFile[]): Promise<any[]> {
     message.info('检测到单张图片，已自动裁剪为 5 张后上传');
   }
   toUpload.forEach((file) => formData.append('files', file));
+  formData.append('model', selectedModel.value);
   const res: any = await aiRecognizeApi(formData);
   if (res.error) throw new Error(res.error);
   const list = res.data?.list || res.list || [];
@@ -83,6 +87,7 @@ async function handleRecognize() {
   }
   loading.value = true;
   state.value = 'recognizing';
+  const expectedRows = filePreviews.value.length === 1 ? 100 : filePreviews.value.length * 20;
   try {
     const rows = await doRecognize(filePreviews.value);
     tableData.value = rows.map((r) => ({
@@ -97,7 +102,13 @@ async function handleRecognize() {
       state.value = 'select';
     } else {
       const hidden = tableData.value.filter((r) => r.roleName === '玩家信息已隐藏').length;
-      message.success(`识别完成，共 ${tableData.value.length} 条（${hidden} 条隐藏名称）`);
+      if (tableData.value.length < expectedRows) {
+        message.warning(
+          `识别完成，共 ${tableData.value.length} 条（${hidden} 条隐藏名称），少于预期约 ${expectedRows} 条，可能未完全提取，可尝试切换其他模型重新识别`,
+        );
+      } else {
+        message.success(`识别完成，共 ${tableData.value.length} 条（${hidden} 条隐藏名称）`);
+      }
       state.value = 'review';
     }
   } catch (e: any) {
@@ -214,6 +225,17 @@ async function handleSubmit() {
             placeholder="选择区服（可选）"
             clearable
             style="width: 240px"
+          />
+        </div>
+
+        <div>
+          <span style="font-size: 14px; color: var(--text-color-secondary); margin-right: 8px">
+            识别模型：
+          </span>
+          <n-select
+            v-model:value="selectedModel"
+            :options="AI_MODEL_OPTIONS.map((m) => ({ label: m.label, value: m.id }))"
+            style="width: 340px"
           />
         </div>
 
