@@ -24,6 +24,7 @@ import {
   updateAnnouncementApi,
   deleteAnnouncementApi,
   syncAnnouncementsApi,
+  syncLatestAnnouncementsApi,
   getSyncLogsApi,
 } from '@/api/announcement';
 import { usePermissionStore } from '@/stores/permission';
@@ -41,6 +42,7 @@ const state = reactive({
   keyword: '',
   loading: false,
   syncing: false,
+  fastSyncing: false,
 });
 
 const canSync = permStore.hasPermission('announcement:sync');
@@ -112,6 +114,58 @@ async function startSync() {
     state.syncing = false;
     message.error('发起抓取失败，请稍后重试');
   }
+}
+
+async function startFastSync() {
+  state.fastSyncing = true;
+  try {
+    // 记录发起前的最新日志 ID，用于识别本次快速抓取任务
+    const beforeRes: any = await getSyncLogsApi({ page: 1, pageSize: 1 });
+    const beforeMaxId = beforeRes.data.list[0]?.id || 0;
+
+    const res: any = await syncLatestAnnouncementsApi();
+    if (!res.data.started) {
+      message.info('已有快速抓取任务正在执行，等待其完成');
+    }
+    pollFastSyncResult(beforeMaxId);
+  } catch {
+    state.fastSyncing = false;
+    message.error('发起快速抓取失败，请稍后重试');
+  }
+}
+
+/** 轮询抓取日志，直到本次快速抓取任务结束 */
+function pollFastSyncResult(beforeMaxId: number) {
+  const startedAt = Date.now();
+  const tick = async () => {
+    if (Date.now() - startedAt > 360000) {
+      state.fastSyncing = false;
+      message.error('抓取超时（超过 6 分钟），请到「抓取日志」中查看最新状态');
+      return;
+    }
+    try {
+      const logsRes: any = await getSyncLogsApi({ page: 1, pageSize: 1 });
+      const latest = logsRes.data.list[0];
+      if (latest && latest.id > beforeMaxId && latest.finishedAt) {
+        state.fastSyncing = false;
+        if (latest.result === 'success') {
+          message.success(`抓取完成：官网发现 ${latest.totalFound} 条，新增 ${latest.totalNew} 条`);
+        } else {
+          message.error(`抓取失败：${latest.message || '未知错误'}`);
+        }
+        fetchData();
+        return;
+      }
+    } catch {
+      // 轮询失败继续重试
+    }
+    setTimeout(tick, 2500);
+  };
+  tick();
+}
+
+function handleFastSync() {
+  startFastSync();
 }
 
 /** 轮询抓取日志，直到出现本次任务（ID 大于发起前最大 ID）且已结束 */
@@ -209,6 +263,14 @@ function fmtTime(v: string | null) {
   return v.replace('T', ' ').slice(0, 19);
 }
 
+function triggerLabel(t: string) {
+  if (t === 'fast-cron') return '快速定时';
+  if (t === 'fast-manual') return '快速手动';
+  if (t === 'full-cron') return '全量定时';
+  if (t === 'cron') return '定时';
+  return '手动';
+}
+
 onMounted(fetchData);
 </script>
 
@@ -216,8 +278,11 @@ onMounted(fetchData);
   <n-card class="page-card" :bordered="false">
     <PageHeader title="公告管理" description="自动抓取 xxsy.qq.com 官网公告，支持定时同步与手动一键获取">
       <n-space>
-        <n-button v-if="canSync" type="primary" :loading="state.syncing" @click="handleSync">
-          一键抓取最新公告
+        <n-button v-if="canSync" type="primary" :loading="state.fastSyncing" @click="handleFastSync">
+          抓最新公告
+        </n-button>
+        <n-button v-if="canSync" type="primary" secondary :loading="state.syncing" @click="handleSync">
+          全量同步
         </n-button>
         <n-button @click="openLogs">抓取日志</n-button>
       </n-space>
@@ -347,8 +412,12 @@ onMounted(fetchData);
             <tr v-for="log in logState.list" :key="log.id">
               <td>{{ fmtTime(log.startedAt) }}</td>
               <td>
-                <n-tag size="small" :bordered="false" :type="log.triggerType === 'cron' ? 'info' : 'warning'">
-                  {{ log.triggerType === 'cron' ? '定时' : '手动' }}
+                <n-tag
+                  size="small"
+                  :bordered="false"
+                  :type="log.triggerType.startsWith('fast') ? 'warning' : log.triggerType === 'full-cron' ? 'info' : 'default'"
+                >
+                  {{ triggerLabel(log.triggerType) }}
                 </n-tag>
               </td>
               <td>

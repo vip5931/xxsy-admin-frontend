@@ -17,6 +17,8 @@ const RESOURCE_LABELS: Record<string, string> = {
   'audit-log': '操作日志',
   profession: '职业管理',
   server: '区服权限',
+  pet: '捉宠管理',
+  announcement: '公告管理',
 };
 
 const form = ref({ name: '', code: '', description: '', permissionIds: [] as number[] });

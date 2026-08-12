@@ -81,6 +81,18 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "公告管理", permission: "announcement:read" },
       },
       {
+        path: "push",
+        name: "Push",
+        component: () => import("@/views/push/PushManage.vue"),
+        meta: { title: "推送管理", permission: "push:read" },
+      },
+      {
+        path: "notices",
+        name: "Notices",
+        component: () => import("@/views/notice/NoticeList.vue"),
+        meta: { title: "消息通知", permission: "notice:read" },
+      },
+      {
         path: "audit-logs",
         name: "AuditLogs",
         component: () => import("@/views/audit-log/AuditLogList.vue"),

@@ -15,6 +15,7 @@ import {
   BriefcaseOutline,
   DocumentTextOutline,
   MegaphoneOutline,
+  NotificationsOutline,
 } from '@vicons/ionicons5';
 import { usePermissionStore } from '@/stores/permission';
 
@@ -64,6 +65,8 @@ const groupDefs: {
       { label: '区服管理', key: '/game-servers', icon: ServerOutline },
       { label: '职业管理', key: '/professions', icon: BriefcaseOutline },
       { label: '公告管理', key: '/announcements', icon: MegaphoneOutline },
+      { label: '推送管理', key: '/push', icon: NotificationsOutline },
+      { label: '消息通知', key: '/notices', icon: NotificationsOutline },
     ],
   },
   {

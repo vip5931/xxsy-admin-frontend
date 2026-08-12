@@ -28,6 +28,11 @@ export function syncAnnouncementsApi() {
   return request.post('/announcements/sync');
 }
 
+/** 快速抓取官网最新公告（只抓各栏目第一页） */
+export function syncLatestAnnouncementsApi() {
+  return request.post('/announcements/sync-latest');
+}
+
 export function getSyncLogsApi(params?: { page?: number; pageSize?: number }) {
   return request.get('/announcements/sync-logs', { params });
 }
